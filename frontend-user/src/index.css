@@ -59,6 +59,17 @@ textarea:focus-visible {
   border-radius: 999px;
 }
 
+/* Fully hides the scrollbar while keeping native scroll/swipe behavior -
+   used by the category carousel so arrows + touch swipe feel intentional
+   rather than like a leftover browser scrollbar. */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

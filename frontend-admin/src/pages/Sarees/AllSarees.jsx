@@ -56,12 +56,12 @@ export default function AllSarees() {
   return (
     <AdminLayout title="All Sarees">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap gap-2">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sarees…"
-            className="w-64 rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-wine"
+            className="w-full min-w-0 rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-wine sm:w-64"
           />
           <button
             type="submit"
@@ -90,8 +90,8 @@ export default function AllSarees() {
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-card border border-border bg-white shadow-card">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-border bg-silk/60 text-xs uppercase tracking-wide text-ink/50">
             <tr>
               <th className="px-4 py-3">Saree</th>

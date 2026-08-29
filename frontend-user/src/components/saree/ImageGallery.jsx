@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CloseIcon } from '../common/Icons.jsx';
 
 export default function ImageGallery({ images = [], sareeName }) {
   const sorted = [...images].sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
@@ -52,10 +53,10 @@ export default function ImageGallery({ images = [], sareeName }) {
         >
           <button
             onClick={() => setFullscreen(false)}
-            className="absolute right-4 top-4 text-2xl text-white"
+            className="absolute right-4 top-4 rounded-md p-1.5 text-white hover:bg-white/10"
             aria-label="Close"
           >
-            ✕
+            <CloseIcon className="h-7 w-7" />
           </button>
           <img
             src={active.url}

@@ -6,6 +6,7 @@ import FilterSidebar from '../components/saree/FilterSidebar.jsx';
 import SortDropdown from '../components/saree/SortDropdown.jsx';
 import Pagination from '../components/common/Pagination.jsx';
 import Loader from '../components/common/Loader.jsx';
+import { CloseIcon } from '../components/common/Icons.jsx';
 import api from '../services/api';
 
 export default function AllSarees() {
@@ -111,8 +112,12 @@ export default function AllSarees() {
           <div className="scrollbar-thin w-80 max-w-[85vw] overflow-y-auto bg-silk p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="font-display text-lg font-semibold">Filters</p>
-              <button onClick={() => setMobileFiltersOpen(false)} className="text-xl">
-                ✕
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                className="rounded-md p-1 text-ink/60 hover:bg-white hover:text-ink"
+                aria-label="Close filters"
+              >
+                <CloseIcon className="h-5 w-5" />
               </button>
             </div>
             <FilterSidebar filters={filters} onChange={handleFilterChange} onClear={handleClearFilters} />

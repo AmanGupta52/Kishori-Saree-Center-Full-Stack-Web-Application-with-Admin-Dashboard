@@ -86,8 +86,8 @@ export default function Categories() {
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-card border border-border bg-white shadow-card">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-card border border-border bg-white shadow-card">
+        <table className="w-full min-w-[480px] text-left text-sm">
           <thead className="border-b border-border bg-silk/60 text-xs uppercase tracking-wide text-ink/50">
             <tr>
               <th className="px-4 py-3">Category</th>
