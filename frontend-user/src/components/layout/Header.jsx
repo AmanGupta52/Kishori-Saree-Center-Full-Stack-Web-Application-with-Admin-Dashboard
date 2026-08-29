@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import shopConfig from '../../utils/shopConfig';
-import { MenuIcon, CloseIcon, SearchIcon, PhoneIcon, MailIcon } from '../common/Icons.jsx';
+import {
+  MenuIcon,
+  CloseIcon,
+  SearchIcon,
+  PhoneIcon,
+  MailIcon,
+} from '../common/Icons.jsx';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -14,157 +20,331 @@ const navLinks = [
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const navigate = useNavigate();
 
-  // Lock background scroll while the mobile drawer is open
+  const navigate = useNavigate();
+  const menuRef = useRef(null);
+
+  /* ---------------------------------------------
+     SEARCH
+  --------------------------------------------- */
+  const handleSearch = (e) => {
+    e.preventDefault();
+
+    const searchValue = query.trim();
+
+    if (!searchValue) return;
+
+    navigate(`/sarees?search=${encodeURIComponent(searchValue)}`);
+    setMenuOpen(false);
+  };
+
+  /* ---------------------------------------------
+     CLOSE MENU
+  --------------------------------------------- */
+  const closeMenu = () => {
+    setMenuOpen(false);
+  };
+
+  /* ---------------------------------------------
+     LOCK BODY SCROLL WHEN MENU IS OPEN
+  --------------------------------------------- */
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
     return () => {
       document.body.style.overflow = '';
     };
   }, [menuOpen]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/sarees?search=${encodeURIComponent(query.trim())}`);
-      setMenuOpen(false);
+  /* ---------------------------------------------
+     CLOSE WITH ESCAPE
+  --------------------------------------------- */
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        closeMenu();
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('keydown', handleEscape);
     }
-  };
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [menuOpen]);
+
+  /* ---------------------------------------------
+     CLOSE WHEN CLICKING OUTSIDE MOBILE MENU
+  --------------------------------------------- */
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        menuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target)
+      ) {
+        closeMenu();
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-silk/95 backdrop-blur">
-      {/* Top contact strip */}
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-silk/95 backdrop-blur">
+      
+      {/* =====================================================
+          TOP CONTACT BAR
+      ====================================================== */}
       <div className="hidden border-b border-border bg-wine text-silk md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-1.5 text-xs lg:px-6">
-          <span>{shopConfig.city}</span>
+          
+          {/* City */}
+          <span className="font-medium">
+            {shopConfig.city}
+          </span>
+
+          {/* Contact information */}
           <div className="flex items-center gap-4">
-            <a href={`tel:${shopConfig.phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 hover:underline">
-              <PhoneIcon className="h-3.5 w-3.5" /> {shopConfig.phone}
+            
+            {/* Phone */}
+            <a
+              href={`tel:${shopConfig.phone.replace(/\s/g, '')}`}
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            >
+              <PhoneIcon className="h-3.5 w-3.5" />
+              <span>{shopConfig.phone}</span>
             </a>
-            <a href={`https://wa.me/${shopConfig.whatsapp}`} target="_blank" rel="noreferrer" className="hover:underline">
+
+            {/* WhatsApp */}
+            <a
+              href={`https://wa.me/${shopConfig.whatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="transition-opacity hover:opacity-80"
+            >
               WhatsApp
             </a>
-            <a href={`mailto:${shopConfig.email}`} className="flex items-center gap-1.5 hover:underline">
-              <MailIcon className="h-3.5 w-3.5" /> {shopConfig.email}
+
+            {/* Email */}
+            <a
+              href={`mailto:${shopConfig.email}`}
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            >
+              <MailIcon className="h-3.5 w-3.5" />
+              <span>{shopConfig.email}</span>
             </a>
+
           </div>
         </div>
       </div>
 
-      {/* Main header row */}
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-        <Link to="/" className="flex shrink-0 items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-wine font-display text-lg font-semibold text-silk">
-            K
-          </div>
-          <div>
-            <p className="font-display text-base font-semibold leading-tight text-wine sm:text-lg">
-              {shopConfig.name}
-            </p>
-            <p className="text-[11px] text-ink/50 md:hidden">{shopConfig.city}</p>
-          </div>
-        </Link>
 
-        {/* Desktop search */}
-        <form onSubmit={handleSearch} className="relative hidden max-w-sm flex-1 md:block">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search sarees, fabric, color…"
-            className="w-full rounded-full border border-border bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-wine"
-          />
-        </form>
+      {/* =====================================================
+          MAIN HEADER
+      ====================================================== */}
+      <div className="mx-auto max-w-7xl px-4 lg:px-6">
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-6 text-sm lg:flex">
-          {navLinks.map((link) => (
-            <Link key={link.to} to={link.to} className="text-ink/70 transition-colors hover:text-wine">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        {/* ===================================================
+            DESKTOP / TABLET MAIN ROW
+        ==================================================== */}
+        <div className="flex min-h-[72px] items-center justify-between gap-4">
 
-        {/* Mobile menu trigger */}
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="rounded-md border border-border p-2 text-ink lg:hidden"
-          aria-label="Open menu"
-          aria-expanded={menuOpen}
-        >
-          <MenuIcon className="h-6 w-6" />
-        </button>
+          {/* -----------------------------------------------
+              LOGO
+          ------------------------------------------------ */}
+          <Link
+            to="/"
+            onClick={closeMenu}
+            className="flex min-w-0 shrink-0 items-center gap-2.5"
+          >
+            {/* Logo circle */}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-wine font-display text-lg font-semibold text-silk">
+              K
+            </div>
+
+            {/* Brand name */}
+            <div className="min-w-0">
+              <p className="truncate font-display text-base font-semibold leading-tight text-wine sm:text-lg lg:text-xl">
+                {shopConfig.name}
+              </p>
+
+              {/* Mobile city */}
+              <p className="text-[11px] text-ink/50 md:hidden">
+                {shopConfig.city}
+              </p>
+            </div>
+          </Link>
+
+
+          {/* -----------------------------------------------
+              DESKTOP SEARCH
+          ------------------------------------------------ */}
+          <form
+            onSubmit={handleSearch}
+            className="relative hidden min-w-0 max-w-[480px] flex-1 md:block lg:max-w-[500px]"
+          >
+            <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search sarees, fabric, color..."
+              className="w-full rounded-full border border-border bg-white py-2.5 pl-10 pr-4 text-sm text-ink outline-none transition focus:border-wine focus:ring-1 focus:ring-wine/20"
+              aria-label="Search sarees"
+            />
+          </form>
+
+
+          {/* -----------------------------------------------
+              DESKTOP NAVIGATION
+          ------------------------------------------------ */}
+          <nav className="hidden items-center gap-5 lg:flex xl:gap-7">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="whitespace-nowrap text-sm text-ink/70 transition-colors hover:text-wine xl:text-[15px]"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+
+          {/* -----------------------------------------------
+              TABLET / MOBILE MENU BUTTON
+          ------------------------------------------------ */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((current) => !current)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-white text-ink transition hover:border-wine hover:text-wine md:flex lg:hidden"
+            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? (
+              <CloseIcon className="h-6 w-6" />
+            ) : (
+              <MenuIcon className="h-6 w-6" />
+            )}
+          </button>
+
+        </div>
+
+
+        {/* ===================================================
+            MOBILE SEARCH
+        ==================================================== */}
+        <div className="pb-3 md:hidden">
+          <form
+            onSubmit={handleSearch}
+            className="relative"
+          >
+            <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search sarees, fabric, color..."
+              className="w-full rounded-full border border-border bg-white py-2.5 pl-10 pr-4 text-sm text-ink outline-none transition focus:border-wine focus:ring-1 focus:ring-wine/20"
+              aria-label="Search sarees"
+            />
+          </form>
+        </div>
+
       </div>
 
-      <div className="hidden lg:block">
+
+      {/* =====================================================
+          GOLD ZARI BORDER
+      ====================================================== */}
+      <div className="hidden md:block">
         <div className="zari-border" />
       </div>
 
-      {/* Mobile drawer + backdrop */}
+
+      {/* =====================================================
+          TABLET + MOBILE MENU
+      ====================================================== */}
       {menuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <>
+          {/* -----------------------------------------------
+              BACKDROP
+          ------------------------------------------------ */}
           <div
-            className="absolute inset-0 bg-ink/50"
-            onClick={() => setMenuOpen(false)}
+            className="fixed inset-0 z-[998] bg-black/30 lg:hidden"
             aria-hidden="true"
           />
 
-          <div className="absolute inset-y-0 right-0 flex w-80 max-w-[85vw] flex-col bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <p className="font-display text-lg font-semibold text-wine">{shopConfig.name}</p>
-              <button
-                onClick={() => setMenuOpen(false)}
-                className="rounded-md p-1.5 text-ink/60 hover:bg-silk hover:text-ink"
-                aria-label="Close menu"
-              >
-                <CloseIcon className="h-6 w-6" />
-              </button>
-            </div>
+          {/* -----------------------------------------------
+              MENU PANEL
+          ------------------------------------------------ */}
+          <div
+            ref={menuRef}
+            className="absolute left-0 right-0 top-full z-[999] border-t border-border bg-white shadow-xl lg:hidden"
+          >
 
-            <div className="flex-1 overflow-y-auto px-5 py-5">
-              <form onSubmit={handleSearch} className="relative mb-6">
-                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search sarees…"
-                  className="w-full rounded-full border border-border bg-silk/50 py-2 pl-9 pr-4 text-sm outline-none focus:border-wine"
-                />
-              </form>
+            {/* Menu inner */}
+            <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
 
-              <nav className="flex flex-col gap-1">
+              {/* Navigation */}
+              <nav className="flex flex-col">
                 {navLinks.map((link) => (
                   <Link
                     key={link.to}
                     to={link.to}
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-md px-3 py-2.5 text-sm font-medium text-ink/80 hover:bg-silk hover:text-wine"
+                    onClick={closeMenu}
+                    className="border-b border-border/60 px-3 py-3.5 text-base font-medium text-ink/80 transition-colors hover:bg-silk hover:text-wine"
                   >
                     {link.label}
                   </Link>
                 ))}
               </nav>
-            </div>
 
-            <div className="border-t border-border px-5 py-4">
-              <a
-                href={`tel:${shopConfig.phone.replace(/\s/g, '')}`}
-                className="mb-2 flex items-center gap-2 text-sm text-ink/70"
-              >
-                <PhoneIcon className="h-4 w-4" /> {shopConfig.phone}
-              </a>
-              <a
-                href={`https://wa.me/${shopConfig.whatsapp}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 text-sm text-sage"
-              >
-                WhatsApp Us
-              </a>
+
+              {/* -------------------------------------------
+                  CONTACT DETAILS
+              -------------------------------------------- */}
+              <div className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+
+                {/* Phone */}
+                <a
+                  href={`tel:${shopConfig.phone.replace(/\s/g, '')}`}
+                  className="flex items-center gap-2 text-sm text-ink/70 transition-colors hover:text-wine"
+                >
+                  <PhoneIcon className="h-4 w-4 shrink-0" />
+                  {shopConfig.phone}
+                </a>
+
+                {/* WhatsApp */}
+                <a
+                  href={`https://wa.me/${shopConfig.whatsapp}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-sage transition-colors hover:opacity-80"
+                >
+                  WhatsApp Us
+                </a>
+
+              </div>
+
             </div>
           </div>
-        </div>
+        </>
       )}
     </header>
   );

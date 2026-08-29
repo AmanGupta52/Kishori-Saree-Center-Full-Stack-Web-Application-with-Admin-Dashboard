@@ -12,7 +12,6 @@ const navSections = [
     links: [
       { to: '/sarees', label: 'All Sarees', end: true },
       { to: '/sarees/add', label: 'Add Saree' },
-      { to: '/sarees?status=out-of-stock', label: 'Out of Stock' },
     ],
   },
   {
