@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Enquiry = require('../models/Enquiry');
+const { sendEnquiryEmail } = require('../utils/mailer');
 
 // @desc    Submit an enquiry (public)
 // @route   POST /api/enquiries
@@ -19,6 +20,22 @@ const createEnquiry = asyncHandler(async (req, res) => {
     email,
     message,
   });
+
+  // Populate saree name for the email (doesn't affect the saved doc)
+  await enquiry.populate('saree', 'name');
+
+  try {
+    await sendEnquiryEmail({
+      name,
+      mobile,
+      email,
+      message,
+      sareeName: enquiry.saree?.name,
+    });
+  } catch (emailErr) {
+    console.error('Failed to send enquiry email:', emailErr.message);
+    // Don't throw — enquiry is already saved, email is a nice-to-have
+  }
 
   res.status(201).json({ success: true, message: 'Enquiry received. We will contact you soon.', enquiry });
 });

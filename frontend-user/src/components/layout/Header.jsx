@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import shopConfig from '../../utils/shopConfig';
+
 import {
   MenuIcon,
   CloseIcon,

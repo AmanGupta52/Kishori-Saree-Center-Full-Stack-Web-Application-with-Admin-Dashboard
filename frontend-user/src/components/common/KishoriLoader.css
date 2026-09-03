@@ -1,0 +1,59 @@
+.kishori-loader .rotor {
+  transform-origin: 150px 150px;
+  animation: kishori-spin 3s linear infinite;
+}
+
+.kishori-loader .glow {
+  transform-origin: 150px 150px;
+  animation: kishori-glow 3s ease-in-out infinite;
+}
+
+@keyframes kishori-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes kishori-glow {
+  0%,
+  100% {
+    opacity: 0.88;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.045);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kishori-loader .rotor,
+  .kishori-loader .glow {
+    animation: none;
+  }
+}
+
+.kishori-loader-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(250, 246, 240, 0.92);
+  z-index: 9999;
+}
+
+.kishori-loader-label {
+  font-family: Georgia, "Playfair Display", serif;
+  color: #7A1B31;
+  font-size: 14px;
+  letter-spacing: 1px;
+  margin: 0;
+}

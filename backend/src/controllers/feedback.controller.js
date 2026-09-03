@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Feedback = require('../models/Feedback');
 const { uploadMultipleToCloudinary, deleteFromCloudinary } = require('../utils/cloudinaryUpload');
+const { sendFeedbackEmail } = require('../utils/mailer');
 
 // @desc    Get approved feedback for a saree (public)
 // @route   GET /api/sarees/:sareeId/feedback
@@ -39,6 +40,19 @@ const submitFeedback = asyncHandler(async (req, res) => {
     photo,
     status: 'pending',
   });
+
+  try {
+    await sendFeedbackEmail({
+      name,
+      rating,
+      comment,
+      sareeId: req.params.sareeId,
+      photoUrl: photo?.url,
+    });
+  } catch (emailErr) {
+    console.error('Failed to send feedback email:', emailErr.message);
+    // Don't throw — feedback is already saved, email is a nice-to-have
+  }
 
   res.status(201).json({
     success: true,
