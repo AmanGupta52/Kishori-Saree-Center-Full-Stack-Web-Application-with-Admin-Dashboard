@@ -7,6 +7,27 @@ const {
 } = require('../utils/cloudinaryUpload');
 const { calculatePricing } = require('../utils/priceCalculator');
 
+// --- Small helpers that prevent the two error classes we kept hitting ---
+
+// An empty string is not a valid ObjectId and is not "no SKU" - it's a value
+// that either crashes a Mongoose cast (ObjectId refs) or collides with every
+// other document that also has "" (sparse-unique fields like sku). Treat
+// blank form fields as "not provided" instead of passing them through.
+const emptyToUndefined = (value) => (value === '' || value === undefined || value === null ? undefined : value);
+
+// Colors/occasions arrive as a JSON-stringified array of ids. Guard against
+// malformed JSON and strip any falsy entries so we never hand Mongoose an
+// array containing "".
+const parseIdArray = (raw) => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+};
+
 // ------------------------------------------------------------------
 // PUBLIC ENDPOINTS
 // ------------------------------------------------------------------
@@ -52,7 +73,6 @@ const getSarees = asyncHandler(async (req, res) => {
   }
 
   if (minDiscount) {
-    // discountAmount as % of originalPrice >= minDiscount
     query.$expr = {
       $gte: [{ $multiply: [{ $divide: ['$discountAmount', '$originalPrice'] }, 100] }, Number(minDiscount)],
     };
@@ -199,6 +219,11 @@ const createSaree = asyncHandler(async (req, res) => {
     throw new Error('At least one saree image is required');
   }
 
+  if (!body.category) {
+    res.status(400);
+    throw new Error('Category is required');
+  }
+
   const uploaded = await uploadMultipleToCloudinary(req.files, {
     folder: `kishori-sarees/${body.slugHint || 'general'}`,
   });
@@ -212,23 +237,29 @@ const createSaree = asyncHandler(async (req, res) => {
 
   const saree = await Saree.create({
     name: body.name,
-    sku: body.sku,
-    category: body.category,
+    // sku is unique+sparse: omit it entirely when blank rather than storing
+    // "" (see emptyToUndefined comment above) so multiple blank-SKU sarees
+    // don't collide on a duplicate-key error.
+    sku: emptyToUndefined(body.sku),
+    // category/fabric are ObjectId refs: "" is not a valid ObjectId, so we
+    // never pass it through - category stays required (checked above),
+    // fabric is optional and simply omitted when blank.
+    category: emptyToUndefined(body.category),
     subCategory: body.subCategory,
-    fabric: body.fabric,
-    colors: body.colors ? JSON.parse(body.colors) : [],
-    occasions: body.occasions ? JSON.parse(body.occasions) : [],
+    fabric: emptyToUndefined(body.fabric),
+    colors: parseIdArray(body.colors),
+    occasions: parseIdArray(body.occasions),
     pattern: body.pattern,
     work: body.work,
     description: body.description,
     shortDescription: body.shortDescription,
     images,
-    originalPrice: body.originalPrice,
+    originalPrice: Number(body.originalPrice) || 0,
     discountType: body.discountType || 'none',
-    discountValue: body.discountValue || 0,
+    discountValue: Number(body.discountValue) || 0,
     sareeLength: body.sareeLength,
     blouseLength: body.blouseLength,
-    stock: body.stock || 0,
+    stock: Number(body.stock) || 0,
     featured: body.featured === 'true',
     newArrival: body.newArrival === 'true',
     bestSeller: body.bestSeller === 'true',
@@ -249,36 +280,57 @@ const updateSaree = asyncHandler(async (req, res) => {
     throw new Error('Saree not found');
   }
 
-  const editableFields = [
+  const body = req.body;
+
+  // Plain string fields - safe to assign as-is, including "" (which clears the field).
+  const stringFields = [
     'name',
-    'sku',
-    'category',
     'subCategory',
-    'fabric',
     'pattern',
     'work',
     'description',
     'shortDescription',
-    'originalPrice',
-    'discountType',
-    'discountValue',
     'sareeLength',
     'blouseLength',
-    'stock',
-    'featured',
-    'newArrival',
-    'bestSeller',
+    'discountType',
     'status',
   ];
-
-  editableFields.forEach((field) => {
-    if (req.body[field] !== undefined) {
-      saree[field] = req.body[field];
-    }
+  stringFields.forEach((field) => {
+    if (body[field] !== undefined) saree[field] = body[field];
   });
 
-  if (req.body.colors) saree.colors = JSON.parse(req.body.colors);
-  if (req.body.occasions) saree.occasions = JSON.parse(req.body.occasions);
+  // ObjectId-ref fields - "" is never valid, so treat it as "unset" instead
+  // of letting Mongoose attempt (and fail) to cast it to an ObjectId. This
+  // is the exact bug from the "Cast to ObjectId failed ... path 'fabric'" error.
+  if (body.category !== undefined) {
+    const next = emptyToUndefined(body.category);
+    if (next === undefined) {
+      res.status(400);
+      throw new Error('Category is required and cannot be cleared.');
+    }
+    saree.category = next;
+  }
+  if (body.fabric !== undefined) saree.fabric = emptyToUndefined(body.fabric);
+
+  // sku is unique+sparse - "" collides with every other blank-SKU saree, so
+  // an empty value here means "remove the SKU", not "set SKU to empty string".
+  if (body.sku !== undefined) saree.sku = emptyToUndefined(body.sku);
+
+  // Numeric fields - coerce explicitly so a stray empty string can't
+  // silently zero out a price, and so string values (FormData) and native
+  // numbers (JSON body) both behave the same way.
+  if (body.originalPrice !== undefined) saree.originalPrice = Number(body.originalPrice) || 0;
+  if (body.discountValue !== undefined) saree.discountValue = Number(body.discountValue) || 0;
+  if (body.stock !== undefined) saree.stock = Number(body.stock) || 0;
+
+  // Boolean flags - accept either a real boolean (JSON callers) or the
+  // string 'true'/'false' (FormData callers).
+  ['featured', 'newArrival', 'bestSeller'].forEach((field) => {
+    if (body[field] !== undefined) saree[field] = body[field] === true || body[field] === 'true';
+  });
+
+  if (body.colors !== undefined) saree.colors = parseIdArray(body.colors);
+  if (body.occasions !== undefined) saree.occasions = parseIdArray(body.occasions);
 
   await saree.save(); // pre-save hook recalculates pricing
 
@@ -341,7 +393,6 @@ const deleteSareeImage = asyncHandler(async (req, res) => {
   const wasMain = saree.images.find((img) => img.publicId === publicId)?.isMain;
   saree.images = saree.images.filter((img) => img.publicId !== publicId);
 
-  // If we deleted the main image, promote the next one
   if (wasMain && saree.images.length > 0) {
     saree.images[0].isMain = true;
   }
@@ -455,7 +506,7 @@ const duplicateSaree = asyncHandler(async (req, res) => {
   const duplicate = await Saree.create({
     ...rest,
     name: `${original.name} (Copy)`,
-    sku: undefined,
+    sku: undefined, // never duplicate a SKU - see the sparse-unique note above
   });
 
   res.status(201).json({ success: true, saree: duplicate });

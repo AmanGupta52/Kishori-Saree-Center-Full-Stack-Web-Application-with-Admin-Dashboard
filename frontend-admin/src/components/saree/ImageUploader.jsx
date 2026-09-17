@@ -1,8 +1,23 @@
 import React, { useCallback, useRef, useState } from 'react';
 
 const MAX_IMAGES = 8;
-const MAX_SIZE_MB = 5;
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+const MAX_SIZE_MB = 10;
+
+// Mirrors the backend's acceptance rule: any mimetype starting with
+// "image/" is fine, and we fall back to the file extension for cases where
+// the browser/OS didn't set a useful mimetype (this happens most often with
+// HEIC/HEIF photos straight off an iPhone camera).
+const ACCEPTED_EXTENSIONS = [
+  '.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif',
+  '.heic', '.heif', '.bmp', '.tiff', '.tif', '.svg',
+];
+
+function isAcceptedImage(file) {
+  if (file.type && file.type.startsWith('image/')) return true;
+  const name = file.name || '';
+  const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
+  return ACCEPTED_EXTENSIONS.includes(ext);
+}
 
 /**
  * Local (pre-submit) image picker for creating a saree.
@@ -27,8 +42,8 @@ export default function ImageUploader({ files, onChange, uploading = false, uplo
 
       const valid = [];
       for (const file of incoming) {
-        if (!ACCEPTED_TYPES.includes(file.type)) {
-          setError(`${file.name}: unsupported format. Use JPEG, PNG, WEBP, or AVIF.`);
+        if (!isAcceptedImage(file)) {
+          setError(`${file.name}: unsupported file type. Please upload an image file.`);
           continue;
         }
         if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -101,13 +116,13 @@ export default function ImageUploader({ files, onChange, uploading = false, uplo
       >
         <p className="text-sm font-medium text-ink/70">Click to upload or drag images here</p>
         <p className="mt-1 text-xs text-ink/40">
-          JPEG, PNG, WEBP, or AVIF · up to {MAX_SIZE_MB}MB each · max {MAX_IMAGES} images
+          Any image format (JPEG, PNG, WEBP, HEIC, GIF, and more) · up to {MAX_SIZE_MB}MB each · max {MAX_IMAGES} images
         </p>
         <input
           ref={inputRef}
           type="file"
           multiple
-          accept={ACCEPTED_TYPES.join(',')}
+          accept={`image/*,${ACCEPTED_EXTENSIONS.join(',')}`}
           className="hidden"
           onChange={handleInputChange}
         />
